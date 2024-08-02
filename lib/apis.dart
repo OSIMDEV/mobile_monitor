@@ -1,0 +1,1 @@
+const monitorCallStack = '/monitor/callstack';
