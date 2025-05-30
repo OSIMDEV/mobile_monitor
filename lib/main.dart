@@ -1,36 +1,37 @@
-import 'package:dart_mq/dart_mq.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:mobile_monitor/local_server.dart';
-import 'package:mobile_monitor/models/Response.dart';
+import 'package:mobile_monitor/services/monitor_service.dart';
 import 'package:mobile_monitor/utils/qr_utils.dart';
-import 'package:mobile_monitor/viewmodels/monitor_call_stack_viewmodel.dart';
-import 'package:mobile_monitor/views/monitor_call_stack_item.dart';
+import 'package:mobile_monitor/viewmodels/monitor_viewmodel.dart';
+import 'package:mobile_monitor/views/monitor_view.dart';
 import 'package:provider/provider.dart';
 
-import 'apis.dart';
-
-void main() {
-  MQClient.initialize();
-  MQClient.instance.declareQueue(monitorCallStack);
-  runApp(const MyApp());
-  LocalServer().start();
+void main() async {
+  final service = MonitorService();
+  await service.init();
+  runApp(MyApp(service: service));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required MonitorService service})
+      : _service = service;
+
+  final MonitorService _service;
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<MonitorService>(
+          create: (_) => _service,
+          dispose: (_, service) => service.dispose(),
+        ),
         ChangeNotifierProvider(
-          create: (_) => MonitorCallStackViewModel(),
+          create: (_) => MonitorViewmodel(_service),
         ),
       ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'Log Monitor',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
@@ -41,94 +42,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> with ConsumerMixin {
-  late LocalServer _server;
-
-  @override
-  void initState() {
-    final vm = context.read<MonitorCallStackViewModel>();
-    super.initState();
-    _server = LocalServer();
-    _server.start().then((value) => setState(() {}));
-    subscribe(
-        queueId: monitorCallStack,
-        callback: (payload) {
-          final response = Response.from(payload);
-          switch (response.type) {
-            case OperationType.push:
-              final oneCallBeans = response.value;
-              if (oneCallBeans.isNotEmpty) {
-                setState(() {
-                  vm.push(oneCallBeans[0]);
-                });
-              }
-              break;
-            case OperationType.pop:
-              setState(() {
-                vm.pop();
-              });
-              break;
-            case OperationType.addAll:
-              final oneCallBeans = response.value;
-              if (oneCallBeans.isNotEmpty) {
-                setState(() {
-                  vm.addAll(oneCallBeans);
-                });
-              }
-              break;
-            case OperationType.load:
-              final oneCallBeans = response.value;
-              if (oneCallBeans.isNotEmpty) {
-                setState(() {
-                  vm.load(oneCallBeans);
-                });
-              }
-              break;
-            case OperationType.clear:
-              setState(() {
-                vm.clear();
-              });
-              break;
-            case OperationType.showToast:
-              final info = response.extra as String?;
-              if (null != info) {
-                Fluttertoast.showToast(
-                  msg: info,
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.CENTER,
-                  timeInSecForIosWeb: 1,
-                  textColor: Colors.white,
-                  backgroundColor: Colors.red,
-                  fontSize: 14.0,
-                );
-              }
-              break;
-            case _:
-              break;
-          }
-        });
-  }
-
-  @override
-  void dispose() {
-    _server.stop();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final vm = context.watch<MonitorCallStackViewModel>();
+    final ip = context.select((MonitorViewmodel vm) => vm.ip);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(_server.wifiIP),
+        title: Text(ip),
         actions: [
           GestureDetector(
             child: const Icon(
@@ -154,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> with ConsumerMixin {
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: QrView(
-                            ip: _server.wifiIP,
+                            ip: ip,
                           ),
                         ),
                       ),
@@ -166,18 +89,7 @@ class _MyHomePageState extends State<MyHomePage> with ConsumerMixin {
           ),
         ],
       ),
-      body: Center(
-        child: ListView.builder(
-          itemCount: vm.oneCallBeans.length,
-          itemBuilder: (_, index) {
-            final item = vm.oneCallBeans[index];
-            return MonitorCallStackItem(
-              name: item.name,
-              color: item.color,
-            );
-          },
-        ),
-      ),
+      body: const MonitorView(),
     );
   }
 }

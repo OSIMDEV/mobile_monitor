@@ -1,8 +1,8 @@
 import 'package:dart_mq/dart_mq.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:mobile_monitor/services/apis.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:server_nano/server_nano.dart';
-
-import 'apis.dart';
 
 class LocalServer with ProducerMixin {
   static const defIP = '127.0.0.1';
@@ -18,19 +18,20 @@ class LocalServer with ProducerMixin {
   String get wifiIP => _wifiIP;
 
   Future<String> _queryWifiIP() async {
+    WidgetsFlutterBinding.ensureInitialized();
     final info = NetworkInfo();
     return await info.getWifiIP() ?? defIP;
   }
 
   Future<void> start() async {
     if (!_isStarted) {
-      _server.post(monitorCallStack, (req, res) async {
+      _server.post(monitorLog, (req, res) async {
         final payload = await req.payload() ?? {};
-        sendMessage(routingKey: monitorCallStack, payload: payload);
+        sendMessage(routingKey: monitorLog, payload: payload);
         await res.status(200).sendJson({'status': 'ok'});
       });
       _wifiIP = await _queryWifiIP();
-      _server.listen(port: defPort);
+      await _server.listen(port: defPort);
       _isStarted = true;
     }
   }
