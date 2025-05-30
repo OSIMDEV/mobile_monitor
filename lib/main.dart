@@ -90,6 +90,13 @@ class MyHomePage extends StatelessWidget {
         ],
       ),
       body: const MonitorView(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.read<MonitorViewmodel>().clearLogs();
+        },
+        tooltip: 'Clear Logs',
+        child: const Icon(Icons.delete),
+      ),
     );
   }
 }

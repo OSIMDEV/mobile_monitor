@@ -20,6 +20,11 @@ class MonitorViewmodel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearLogs() {
+    _logs = [];
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _service.removeListener(add);

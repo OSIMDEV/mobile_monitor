@@ -31,7 +31,7 @@ class LocalServer with ProducerMixin {
         await res.status(200).sendJson({'status': 'ok'});
       });
       _wifiIP = await _queryWifiIP();
-      await _server.listen(port: defPort);
+      await _server.listen(host: _wifiIP, port: defPort);
       _isStarted = true;
     }
   }

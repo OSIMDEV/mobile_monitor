@@ -18,7 +18,7 @@ class MonitorView extends StatelessWidget {
             children: [
               Text(log.toJson(),
                   style: const TextStyle(fontSize: 16.0, color: Colors.black)),
-              const SizedBox(height: 8.0),
+              Divider(color: Colors.grey.shade300, thickness: 1.0),
             ],
           );
         },

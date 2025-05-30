@@ -15,7 +15,9 @@ class MonitorService with ConsumerMixin {
     _subscription = _sController.stream.listen(_onListen);
     subscribe(
       queueId: monitorLog,
-      callback: (payload) => _sController.sink.add(Log.from(payload)),
+      callback: (payload) {
+        _sController.sink.add(Log.from(payload.payload));
+      },
     );
   }
 
